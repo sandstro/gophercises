@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 )
 
 type line struct {
@@ -44,20 +45,61 @@ func parseLine(qa line) bool {
 	return userAnswer == qa.answer
 }
 
-func main() {
+func createTimer(timeLimit int) *time.Timer {
+	return time.NewTimer(time.Duration(timeLimit) * time.Second)
+}
 
-	csvFileName := flag.String("csv", "problems.csv", "A .csv filename for questions and answers, comma separated")
+func handleTimer(timer time.Timer, counter *int) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Printf("\n\n\n*** You ran out of time!***\n\n")
+				printAnswersCount(*counter)
+			}
+		}()
+
+		<-timer.C
+		panic("You ran out of time!")
+	}()
+}
+
+func printAnswersCount(counter int) {
+	log.Fatal("You got ", counter, " answer(s) correctly!")
+}
+
+func checkUserReady(data []line, timeLimit int) {
+	fmt.Printf("Try to answer following %v questions!\n", len(data))
+	fmt.Println("Press Enter key to start the test: you've got", timeLimit, "seconds to answer all the questions!")
+	input := bufio.NewScanner(os.Stdin)
+	input.Scan()
+}
+
+func parseFlags() (*string, *int) {
+	csvFileName := flag.String("csv", "problems.csv", ".csv filename for questions and answers, comma separated")
+	timeLimit := flag.Int("limit", 30, "the time limit for quic completion in seconds")
 	flag.Parse()
+	return csvFileName, timeLimit
+}
+
+func main() {
+	csvFileName, timeLimit := parseFlags()
+
 	data := readFile(*csvFileName)
 
-	var counter int
-	fmt.Printf("Try to answer following %v questions!\n", len(data))
+	initCount := 0
+	counter := &initCount
+
+	checkUserReady(data, *timeLimit)
+
+	timer := createTimer(*timeLimit)
+	handleTimer(*timer, counter)
+
 	for _, line := range data {
 		success := parseLine(line)
 		if success {
-			counter++
+			*counter++
 		}
 	}
 
-	fmt.Println("You got", counter, "answer(s) correctly!")
+	printAnswersCount(*counter)
 }
