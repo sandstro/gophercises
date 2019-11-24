@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -44,7 +45,10 @@ func parseLine(qa line) bool {
 }
 
 func main() {
-	data := readFile("problems.csv")
+
+	csvFileName := flag.String("csv", "problems.csv", "A .csv filename for questions and answers, comma separated")
+	flag.Parse()
+	data := readFile(*csvFileName)
 
 	var counter int
 	fmt.Printf("Try to answer following %v questions!\n", len(data))
